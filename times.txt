@@ -1,0 +1,8 @@
+Calculate one millionth prime number:
+Rust: 0.709 seconds
+C++: 0.709 seconds
+Node: 0.799 seconds
+C: 0.857 seconds
+Go: 2.209 seconds
+Ruby: 39.934 seconds
+Python: 4 minutes 49.347 seconds
