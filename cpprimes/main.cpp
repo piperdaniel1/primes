@@ -28,6 +28,6 @@ int generate_nth_prime(int n) {
 }
 
 int main() {
-    std::cout << generate_nth_prime(1000000) << std::endl;
+    std::cout << generate_nth_prime(5000000) << std::endl;
     return 0;
 }

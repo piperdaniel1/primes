@@ -1,1 +1,1 @@
-/home/daniel/oregonstate-projects/cs381/lab3/rprimes/target/debug/rprimes: /home/daniel/oregonstate-projects/cs381/lab3/rprimes/src/main.rs
+/home/daniel/personal-projects/primes/rprimes/target/debug/rprimes: /home/daniel/personal-projects/primes/rprimes/src/main.rs /home/daniel/personal-projects/primes/rprimes/src/multithread.rs

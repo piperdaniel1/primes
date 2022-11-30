@@ -1,5 +1,7 @@
 use std::env;
 
+mod multithread;
+
 fn gen_nth_prime(n: u32) -> u32 {
     let mut primes = vec![2];
     let mut i = 3;
@@ -21,7 +23,23 @@ fn gen_nth_prime(n: u32) -> u32 {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let n = args[1].parse::<u32>().unwrap();
 
-    println!("{}", gen_nth_prime(n));
+    if args.len() == 1 || args.len() > 2 {
+        println!("Usage: ./primes <n> [multithread]");
+        return;
+    }
+
+    let n = match args[1].parse::<u32>() {
+        Ok(n) => n,
+        Err(_) => {
+            println!("Usage: ./primes <n> [multithread]");
+            return;
+        }
+    };
+
+    if args.len() > 2 && args[2] == "multithread" {
+        println!("Sorry, multithreading is not implemented yet.");
+    } else {
+        println!("{}", gen_nth_prime(n));
+    }
 }
