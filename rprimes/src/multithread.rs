@@ -38,47 +38,57 @@ fn generator_thread(starting_num: u64, add_amount: u64, tx: mpsc::Sender<u64>, r
 
     loop {
         // Check a prime
-        for p in &primes {
-            if i % p == 0 {
-                break;
-            }
-            if p * p > i {
-                primes.push(i);
+        if i <= max_num {
+            println!("[gen {}] testing number {}...", thread_num, i);
+            for p in &primes {
+                if i % p == 0 {
+                    break;
+                }
+                if p * p > i {
+                    primes.push(i);
 
-                // Send the new prime to the main thread
-                tx.send(i).unwrap();
+                    // Send the new prime to the main thread
+                    match tx.send(i) {
+                        Ok(_) => {},
+                        Err(_) => {
+                            // we probably should close because main thread closed
+                            return;
+                        }
+                    };
 
-                println!("[gen {}] found and sent prime {}", thread_num, i);
-                break;
+                    println!("[gen {}] found and sent prime {}", thread_num, i);
+                    break;
+                }
             }
+
+            i += add_amount;
+            println!("[gen {}] updated i to {}", thread_num, i);
         }
 
-        i += add_amount;
-        println!("[gen {}] updated i to {}", thread_num, i);
+        println!("[gen {}] receiving max nums", thread_num);
 
         // Receive all of the max numbers from the main thread
         loop {
             let recv = match rx_max_num.try_recv() {
                 Ok(p) => p,
                 Err(_) => {
-                    if i <= max_num {
-                        break;
-                    } else {
-                        // Hopefully the main thread will send a max number soon
-                        thread::sleep(std::time::Duration::from_millis(100));
-                        continue;
+                    // pause a bit to slow down the loop and not waste resources
+                    if i > max_num {
+                        thread::sleep(std::time::Duration::from_millis(15));
                     }
+                    break;
                 },
             };
 
             // Update the max num
             if recv > max_num {
-                println!("[gen {}] updated max num to {}", thread_num, i);
+                println!("[gen {}] updated max num to {}", thread_num, recv);
                 max_num = recv;
             }
         }
 
         // Receive all of the new primes from the main thread
+        println!("[gen {}] receiving primes...", thread_num);
         loop {
             let recv = match rx.try_recv() {
                 Ok(p) => p,
@@ -127,8 +137,9 @@ pub fn gen_nth_prime(n: u64, num_threads: u64) -> u32 {
 
     // Keep track of the primes we have found
     let mut primes = vec![2];
-    let mut max_nums_recieved: Vec<u64> = vec![0; num_threads as usize];
+    let mut max_nums_received: Vec<u64> = vec![0; num_threads as usize];
     let mut max_num = 4;
+    let mut accurate_to: u64 = 0;
 
     // Spawn all of the threads and give them the channels they need
     // Keep the channels we need to communicate with the threads
@@ -165,8 +176,8 @@ pub fn gen_nth_prime(n: u64, num_threads: u64) -> u32 {
                 println!("[main] Received prime {} from thread {}", recv, i);
 
                 // Update the max num for that thread
-                if recv > max_nums_recieved[i as usize] {
-                    max_nums_recieved[i as usize] = recv;
+                if recv > max_nums_received[i as usize] {
+                    max_nums_received[i as usize] = recv;
                 }
 
                 // Send the new prime to the other threads (besides thread i)
@@ -180,17 +191,22 @@ pub fn gen_nth_prime(n: u64, num_threads: u64) -> u32 {
         }
 
         // Get the min max num recieved
-        let mut max_num_recieved = 0;
+        let mut max_num_received = 0;
+        accurate_to = max_nums_received[0];
 
         for i in 0..num_threads {
-            if max_nums_recieved[i as usize] > max_num_recieved || max_num_recieved == 0 {
-                max_num_recieved = max_nums_recieved[i as usize]
+            if max_nums_received[i as usize] > max_num_received || max_num_received == 0 {
+                max_num_received = max_nums_received[i as usize]
+            }
+
+            if max_nums_received[i as usize] < accurate_to && max_nums_received[i as usize] != 0 {
+                accurate_to = max_nums_received[i as usize];
             }
         }
 
         // Update the threads
-        if max_num_recieved*max_num_recieved > max_num {
-            max_num = max_num_recieved*max_num_recieved;
+        if accurate_to*accurate_to > max_num {
+            max_num = accurate_to*accurate_to;
             println!("[main] Sending new max num {} to all threads", max_num);
             // Send the max number to the threads
             for i in 0..num_threads {
@@ -199,11 +215,11 @@ pub fn gen_nth_prime(n: u64, num_threads: u64) -> u32 {
         }
 
         // Check if we have found enough primes
-        if primes.len() as u64 >= n {
-            println!("[main] We found enough primes, exiting...");
+        if primes.len() as u64 >= n && primes[n as usize - 1] < accurate_to  {
+            println!("[main] We found enough primes. We are accurate to {} and the {}th prime in the array is {}, exiting...", accurate_to, n, primes[n as usize]);
             break;
         }
     }
 
-    return primes[n as usize - 1] as u32;
+    return primes[n as usize] as u32;
 }
