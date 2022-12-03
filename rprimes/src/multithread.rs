@@ -192,6 +192,7 @@ pub fn gen_nth_prime(n: u64, num_threads: u64) -> u32 {
 
         // Get the min max num recieved
         let mut max_num_received = 0;
+        let old_accurate_to = accurate_to;
         accurate_to = max_nums_received[0];
 
         for i in 0..num_threads {
@@ -200,6 +201,9 @@ pub fn gen_nth_prime(n: u64, num_threads: u64) -> u32 {
             }
 
             if max_nums_received[i as usize] < accurate_to && max_nums_received[i as usize] != 0 {
+                if old_accurate_to != max_nums_received[i as usize] {
+                    println!("[main] accurate to {}", max_nums_received[i as usize]);
+                }
                 accurate_to = max_nums_received[i as usize];
             }
         }
